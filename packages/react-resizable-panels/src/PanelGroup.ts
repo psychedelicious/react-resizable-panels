@@ -45,11 +45,13 @@ import {
 
 const LOCAL_STORAGE_DEBOUNCE_INTERVAL = 100;
 
-export type ImperativePanelGroupHandle = {
+export type ImperativePanelGroupHandle<
+  T extends keyof HTMLElementTagNameMap = "div",
+> = {
   getId: () => string;
   getLayout: () => number[];
   setLayout: (layout: number[]) => void;
-  elementRef: RefObject<HTMLElement>;
+  elementRef: RefObject<HTMLElementTagNameMap[T]>;
 };
 
 export type PanelGroupStorage = {
@@ -70,24 +72,27 @@ const defaultStorage: PanelGroupStorage = {
   },
 };
 
-export type PanelGroupProps = Omit<HTMLAttributes<ElementType>, "id"> &
-  PropsWithChildren<{
-    autoSaveId?: string | null;
-    className?: string;
-    direction: Direction;
-    id?: string | null;
-    keyboardResizeBy?: number | null;
-    onLayout?: PanelGroupOnLayout | null;
-    storage?: PanelGroupStorage;
-    style?: CSSProperties;
-    tagName?: ElementType;
-  }>;
+export type PanelGroupProps<T extends keyof HTMLElementTagNameMap = "div"> =
+  Omit<HTMLAttributes<T>, "id"> &
+    PropsWithChildren<{
+      autoSaveId?: string | null;
+      className?: string;
+      direction: Direction;
+      id?: string | null;
+      keyboardResizeBy?: number | null;
+      onLayout?: PanelGroupOnLayout | null;
+      storage?: PanelGroupStorage;
+      style?: CSSProperties;
+      tagName?: T;
+    }>;
 
 const debounceMap: {
   [key: string]: typeof savePanelGroupState;
 } = {};
 
-function PanelGroupWithForwardedRef({
+function PanelGroupWithForwardedRef<
+  T extends keyof HTMLElementTagNameMap = "div",
+>({
   autoSaveId = null,
   children,
   className: classNameFromProps = "",
@@ -98,17 +103,17 @@ function PanelGroupWithForwardedRef({
   keyboardResizeBy = null,
   storage = defaultStorage,
   style: styleFromProps,
-  tagName: Type = "div",
+  tagName: Type = "div" as T,
   ...rest
-}: PanelGroupProps & {
-  forwardedRef: ForwardedRef<ImperativePanelGroupHandle>;
+}: PanelGroupProps<T> & {
+  forwardedRef: ForwardedRef<ImperativePanelGroupHandle<T>>;
 }) {
   const groupId = useUniqueId(idFromProps);
 
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [layout, setLayout] = useState<number[]>([]);
 
-  const panelGroupElementRef = useRef<HTMLElement>(null);
+  const panelGroupElementRef = useRef<HTMLElementTagNameMap[T]>(null);
 
   const panelIdToLastNotifiedSizeMapRef = useRef<Record<string, number>>({});
   const panelSizeBeforeCollapseRef = useRef<Map<string, number>>(new Map());
@@ -820,10 +825,14 @@ function PanelGroupWithForwardedRef({
 }
 
 export const PanelGroup = forwardRef<
-  ImperativePanelGroupHandle,
+  ImperativePanelGroupHandle<keyof HTMLElementTagNameMap>,
   PanelGroupProps
->((props: PanelGroupProps, ref: ForwardedRef<ImperativePanelGroupHandle>) =>
-  createElement(PanelGroupWithForwardedRef, { ...props, forwardedRef: ref })
+>(
+  (
+    props: PanelGroupProps,
+    ref: ForwardedRef<ImperativePanelGroupHandle<keyof HTMLElementTagNameMap>>
+  ) =>
+    createElement(PanelGroupWithForwardedRef, { ...props, forwardedRef: ref })
 );
 
 PanelGroupWithForwardedRef.displayName = "PanelGroup";

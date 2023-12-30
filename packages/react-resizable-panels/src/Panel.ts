@@ -4,7 +4,6 @@ import { PanelGroupContext } from "./PanelGroupContext";
 import useIsomorphicLayoutEffect from "./hooks/useIsomorphicEffect";
 import useUniqueId from "./hooks/useUniqueId";
 import {
-  ElementType,
   ForwardedRef,
   HTMLAttributes,
   PropsWithChildren,
@@ -45,7 +44,9 @@ export type PanelData = {
   order: number | undefined;
 };
 
-export type ImperativePanelHandle = {
+export type ImperativePanelHandle<
+  T extends keyof HTMLElementTagNameMap = "div",
+> = {
   collapse: () => void;
   expand: () => void;
   getId(): string;
@@ -53,10 +54,13 @@ export type ImperativePanelHandle = {
   isCollapsed: () => boolean;
   isExpanded: () => boolean;
   resize: (size: number) => void;
-  elementRef: RefObject<HTMLElement>;
+  elementRef: RefObject<HTMLElementTagNameMap[T]>;
 };
 
-export type PanelProps = Omit<HTMLAttributes<ElementType>, "id" | "onResize"> &
+export type PanelProps<T extends keyof HTMLElementTagNameMap = "div"> = Omit<
+  HTMLAttributes<T>,
+  "id" | "onResize"
+> &
   PropsWithChildren<{
     className?: string;
     collapsedSize?: number | undefined;
@@ -70,10 +74,12 @@ export type PanelProps = Omit<HTMLAttributes<ElementType>, "id" | "onResize"> &
     onResize?: PanelOnResize;
     order?: number;
     style?: object;
-    tagName?: ElementType;
+    tagName?: T;
   }>;
 
-export function PanelWithForwardedRef({
+export function PanelWithForwardedRef<
+  T extends keyof HTMLElementTagNameMap = "div",
+>({
   children,
   className: classNameFromProps = "",
   collapsedSize,
@@ -88,10 +94,10 @@ export function PanelWithForwardedRef({
   onResize,
   order,
   style: styleFromProps,
-  tagName: Type = "div",
+  tagName: Type = "div" as T,
   ...rest
-}: PanelProps & {
-  forwardedRef: ForwardedRef<ImperativePanelHandle>;
+}: PanelProps<T> & {
+  forwardedRef: ForwardedRef<ImperativePanelHandle<T>>;
 }) {
   const context = useContext(PanelGroupContext);
   if (context === null) {
@@ -114,7 +120,7 @@ export function PanelWithForwardedRef({
 
   const panelId = useUniqueId(idFromProps);
 
-  const panelElementRef = useRef<HTMLElement>(null);
+  const panelElementRef = useRef<HTMLElementTagNameMap[T]>(null);
 
   const panelDataRef = useRef<PanelData>({
     callbacks: {
@@ -245,9 +251,14 @@ export function PanelWithForwardedRef({
   });
 }
 
-export const Panel = forwardRef<ImperativePanelHandle, PanelProps>(
-  (props: PanelProps, ref: ForwardedRef<ImperativePanelHandle>) =>
-    createElement(PanelWithForwardedRef, { ...props, forwardedRef: ref })
+export const Panel = forwardRef<
+  ImperativePanelHandle<keyof HTMLElementTagNameMap>,
+  PanelProps
+>(
+  (
+    props: PanelProps,
+    ref: ForwardedRef<ImperativePanelHandle<keyof HTMLElementTagNameMap>>
+  ) => createElement(PanelWithForwardedRef, { ...props, forwardedRef: ref })
 );
 
 PanelWithForwardedRef.displayName = "Panel";
